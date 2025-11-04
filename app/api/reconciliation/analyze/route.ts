@@ -9,9 +9,9 @@ import {
 } from "@/lib/reconciliation/quick-parser";
 import type { ReconciliationBreak } from "@/lib/reconciliation/types";
 
-// OpenRouter setup - uses OPENROUTER_API_KEY from environment
+// OpenRouter setup - uses OPEN_ROUTER_API_KEY from environment
 const openrouter = createOpenRouter({
-  apiKey: process.env.OPENROUTER_API_KEY || process.env.OPEN_ROUTER_API_KEY,
+  apiKey: process.env.OPEN_ROUTER_API_KEY,
 });
 
 // Using GPT-4o-mini for cost-effective analysis
@@ -230,9 +230,9 @@ Key principles:
     return {
       ...object,
       usage: {
-        promptTokens: usage?.promptTokens || 0,
-        completionTokens: usage?.completionTokens || 0,
-        totalTokens: usage?.totalTokens || 0,
+        promptTokens: usage?.inputTokens ?? 0,
+        completionTokens: usage?.outputTokens ?? 0,
+        totalTokens: (usage?.inputTokens ?? 0) + (usage?.outputTokens ?? 0),
       },
     };
   } catch (error) {
@@ -245,7 +245,7 @@ Key principles:
 
 /**
  * Calculate LLM cost based on token usage
- * GPT-4o-mini pricing: $0.150 per 1M input tokens, $0.600 per 1M output tokens
+ * OpenRouter pricing for openai/gpt-4o-mini: $0.150 per 1M input tokens, $0.600 per 1M output tokens
  */
 function calculateCost(usage: {
   promptTokens: number;
