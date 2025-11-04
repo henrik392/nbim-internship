@@ -72,6 +72,8 @@ export function reconcile(
         instrument: nbimRec.instrument_name || nbimRec.isin,
         isin: nbimRec.isin,
         break_type: "MISSING_RECORD",
+        field_name: "Record",
+        issue_category: "Missing in Custody",
         nbim_value: nbimRec.nominal_basis,
         custody_value: null,
         difference: nbimRec.nominal_basis,
@@ -143,6 +145,8 @@ export function reconcile(
         instrument: custodyRec.instrument_name || custodyRec.isin,
         isin: custodyRec.isin,
         break_type: "MISSING_RECORD",
+        field_name: "Record",
+        issue_category: "Missing in NBIM",
         nbim_value: null,
         custody_value: custodyRec.nominal_basis,
         difference: custodyRec.nominal_basis,
@@ -177,6 +181,8 @@ function validateFields(
         instrument: nbimRec.instrument_name || nbimRec.isin,
         isin: nbimRec.isin,
         break_type: "FIELD_INCONSISTENCY",
+        field_name: "Custody Data",
+        issue_category: "Data Quality",
         nbim_value: custodyRec.nominal_basis,
         custody_value: custodyRec.holding_quantity,
         difference: custodyRec.nominal_basis - custodyRec.holding_quantity,
@@ -232,6 +238,8 @@ function validateCalculations(
       instrument: nbimRec.instrument_name || nbimRec.isin,
       isin: nbimRec.isin,
       break_type: "CALCULATION_ERROR",
+      field_name: "NBIM Gross",
+      issue_category: "Calculation Error",
       nbim_value: nbimRec.gross_amount_quotation,
       custody_value: nbimComp.gross,
       difference: nbimRec.gross_amount_quotation - nbimComp.gross,
@@ -246,6 +254,8 @@ function validateCalculations(
       instrument: nbimRec.instrument_name || nbimRec.isin,
       isin: nbimRec.isin,
       break_type: "CALCULATION_ERROR",
+      field_name: "Custody Gross",
+      issue_category: "Calculation Error",
       nbim_value: custComp.gross,
       custody_value: custodyRec.gross_amount,
       difference: custComp.gross - custodyRec.gross_amount,
@@ -283,6 +293,8 @@ function compareValues(
       instrument: nbimRec.instrument_name || nbimRec.isin,
       isin: nbimRec.isin,
       break_type: "QUANTITY",
+      field_name: "Quantity",
+      issue_category: "Mismatch",
       nbim_value: nbimRec.nominal_basis,
       custody_value: custodyRec.holding_quantity,
       difference: quantityDiff,
@@ -302,6 +314,8 @@ function compareValues(
       instrument: nbimRec.instrument_name || nbimRec.isin,
       isin: nbimRec.isin,
       break_type: "DIVIDEND_RATE",
+      field_name: "Dividend Rate",
+      issue_category: "Mismatch",
       nbim_value: nbimRec.dividend_per_share,
       custody_value: custodyRec.dividend_rate,
       difference: divRateDiff,
@@ -321,6 +335,8 @@ function compareValues(
       instrument: nbimRec.instrument_name || nbimRec.isin,
       isin: nbimRec.isin,
       break_type: "TAX_RATE",
+      field_name: "Tax Rate",
+      issue_category: "Mismatch",
       nbim_value: nbimRec.total_tax_rate,
       custody_value: custodyRec.tax_rate,
       difference: taxRateDiff,
@@ -343,6 +359,8 @@ function compareValues(
       instrument: nbimRec.instrument_name || nbimRec.isin,
       isin: nbimRec.isin,
       break_type: "GROSS_AMOUNT",
+      field_name: "Gross Amount",
+      issue_category: "Mismatch",
       nbim_value: nbimComp.gross,
       custody_value: custComp.gross,
       difference: grossDiff,
@@ -362,6 +380,8 @@ function compareValues(
       instrument: nbimRec.instrument_name || nbimRec.isin,
       isin: nbimRec.isin,
       break_type: "TAX_AMOUNT",
+      field_name: "Tax Amount",
+      issue_category: "Mismatch",
       nbim_value: nbimComp.tax,
       custody_value: custComp.tax,
       difference: taxAmtDiff,
@@ -382,6 +402,8 @@ function compareValues(
       instrument: nbimRec.instrument_name || nbimRec.isin,
       isin: nbimRec.isin,
       break_type: "AMOUNT",
+      field_name: "Net Amount",
+      issue_category: "Mismatch",
       nbim_value: nbimComp.net,
       custody_value: custComp.net,
       difference: netDiff,
@@ -415,6 +437,8 @@ function compareDates(
       instrument: nbimRec.instrument_name || nbimRec.isin,
       isin: nbimRec.isin,
       break_type: "DATE_MISMATCH",
+      field_name: "Payment Date",
+      issue_category: "Mismatch",
       nbim_value: nbimRec.payment_date as any, // Store actual date as string
       custody_value: custodyRec.payment_date as any,
       difference: null as any, // Not numeric
@@ -440,14 +464,16 @@ function compareFX(
   }
 
   // Normalize: if rates are very different magnitudes, they might be reciprocals
-  const ratio = Math.max(nbimRec.fx_rate, custodyRec.fx_rate) /
-                Math.min(nbimRec.fx_rate, custodyRec.fx_rate);
+  const ratio =
+    Math.max(nbimRec.fx_rate, custodyRec.fx_rate) /
+    Math.min(nbimRec.fx_rate, custodyRec.fx_rate);
 
   // If ratio > 100, they're likely in different directions (reciprocals)
   if (ratio > 100) {
     // Check if they're reciprocals (1/x relationship)
     const reciprocal = 1 / custodyRec.fx_rate;
-    const diffFromReciprocal = Math.abs(nbimRec.fx_rate - reciprocal) / reciprocal;
+    const diffFromReciprocal =
+      Math.abs(nbimRec.fx_rate - reciprocal) / reciprocal;
 
     // Only flag if they differ by more than 0.5% even as reciprocals
     if (diffFromReciprocal > 0.005) {
@@ -467,7 +493,8 @@ function compareFX(
     const fxDiff = Math.abs(nbimRec.fx_rate - custodyRec.fx_rate);
     const fxDiffPct = fxDiff / nbimRec.fx_rate;
 
-    if (fxDiffPct > 0.005) { // 0.5% tolerance
+    if (fxDiffPct > 0.005) {
+      // 0.5% tolerance
       breaks.push({
         event_key: nbimRec.coac_event_key,
         instrument: nbimRec.instrument_name || nbimRec.isin,

@@ -98,7 +98,10 @@ export function ResultsTable({ breaks }: ResultsTableProps) {
                 Instrument
               </th>
               <th className="px-4 py-3 text-left font-semibold text-gray-900 text-sm dark:text-gray-100">
-                Type
+                Field
+              </th>
+              <th className="px-4 py-3 text-left font-semibold text-gray-900 text-sm dark:text-gray-100">
+                Issue Type
               </th>
               <th className="px-4 py-3 text-right font-semibold text-gray-900 text-sm dark:text-gray-100">
                 NBIM
@@ -134,8 +137,11 @@ export function ResultsTable({ breaks }: ResultsTableProps) {
                     {breakItem.isin}
                   </div>
                 </td>
+                <td className="px-4 py-3 font-medium text-gray-900 text-sm dark:text-gray-100">
+                  {breakItem.field_name || "—"}
+                </td>
                 <td className="px-4 py-3 text-gray-700 text-sm dark:text-gray-300">
-                  {breakTypeLabels[breakItem.break_type]}
+                  {breakItem.issue_category || "—"}
                 </td>
                 <td className="px-4 py-3 text-right font-mono text-gray-900 text-sm dark:text-gray-100">
                   {breakItem.break_type === "AMOUNT"
