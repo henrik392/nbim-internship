@@ -48,9 +48,12 @@ const remediationLabels = {
   escalation: "Escalate",
 };
 
-function formatNumber(num: number | null): string {
-  if (num === null) {
+function formatNumber(num: number | null | string): string {
+  if (num === null || num === undefined) {
     return "N/A";
+  }
+  if (typeof num === "string") {
+    return num; // For dates
   }
   return new Intl.NumberFormat("en-US", {
     minimumFractionDigits: 0,
@@ -58,9 +61,12 @@ function formatNumber(num: number | null): string {
   }).format(num);
 }
 
-function formatCurrency(num: number | null): string {
-  if (num === null) {
+function formatCurrency(num: number | null | string): string {
+  if (num === null || num === undefined) {
     return "N/A";
+  }
+  if (typeof num === "string") {
+    return num; // For dates
   }
   return new Intl.NumberFormat("nb-NO", {
     style: "currency",
@@ -144,19 +150,32 @@ export function ResultsTable({ breaks }: ResultsTableProps) {
                 <td
                   className={cn(
                     "px-4 py-3 text-right font-medium font-mono text-sm",
-                    breakItem.difference > 0
-                      ? "text-green-600 dark:text-green-400"
-                      : "text-red-600 dark:text-red-400"
+                    breakItem.break_type === "DATE_MISMATCH"
+                      ? "text-yellow-600 dark:text-yellow-400"
+                      : breakItem.difference > 0
+                        ? "text-green-600 dark:text-green-400"
+                        : "text-red-600 dark:text-red-400"
                   )}
                 >
-                  {breakItem.difference > 0 ? "+" : ""}
-                  {breakItem.break_type === "AMOUNT"
-                    ? formatNumber(breakItem.difference)
-                    : formatNumber(breakItem.difference)}
-                  <span className="ml-1 text-xs">
-                    ({breakItem.difference_pct > 0 ? "+" : ""}
-                    {breakItem.difference_pct.toFixed(1)}%)
-                  </span>
+                  {breakItem.break_type === "DATE_MISMATCH" ? (
+                    <span className="text-xs">
+                      {formatNumber(breakItem.nbim_value)} →{" "}
+                      {formatNumber(breakItem.custody_value)}
+                    </span>
+                  ) : (
+                    <>
+                      {breakItem.difference > 0 ? "+" : ""}
+                      {breakItem.break_type === "AMOUNT"
+                        ? formatNumber(breakItem.difference)
+                        : formatNumber(breakItem.difference)}
+                      {breakItem.difference_pct !== null && (
+                        <span className="ml-1 text-xs">
+                          ({breakItem.difference_pct > 0 ? "+" : ""}
+                          {breakItem.difference_pct.toFixed(1)}%)
+                        </span>
+                      )}
+                    </>
+                  )}
                 </td>
                 <td className="px-4 py-3 text-center">
                   {breakItem.severity && (

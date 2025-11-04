@@ -100,6 +100,7 @@ export function reconcile(
     breaks.push(...calcBreaks);
 
     // STEP 4: Compare recomputed values (the source of truth)
+    // Only report PRIMARY breaks to avoid cascading duplicates
     const compBreaks = compareValues(
       nbimRec,
       custodyRec,
@@ -254,6 +255,7 @@ function validateCalculations(
 
 /**
  * Compare recomputed values between NBIM and Custody
+ * Only reports PRIMARY breaks to avoid cascading duplicates
  */
 function compareValues(
   nbimRec: NBIMRecord,
@@ -264,9 +266,15 @@ function compareValues(
   const breaks: ReconciliationBreak[] = [];
   const tolerance = getTolerance(nbimRec.quotation_currency);
 
-  // 1. Quantity
+  // Track which root causes we've found
+  let hasQuantityBreak = false;
+  let hasDividendRateBreak = false;
+  let hasTaxRateBreak = false;
+
+  // 1. Quantity (PRIMARY break)
   const quantityDiff = nbimRec.nominal_basis - custodyRec.holding_quantity;
   if (Math.abs(quantityDiff) > TOLERANCE.QUANTITY) {
+    hasQuantityBreak = true;
     breaks.push({
       event_key: nbimRec.coac_event_key,
       instrument: nbimRec.instrument_name || nbimRec.isin,
@@ -282,9 +290,10 @@ function compareValues(
     });
   }
 
-  // 2. Dividend Rate
+  // 2. Dividend Rate (PRIMARY break)
   const divRateDiff = nbimRec.dividend_per_share - custodyRec.dividend_rate;
   if (Math.abs(divRateDiff) > TOLERANCE.DIVIDEND_RATE) {
+    hasDividendRateBreak = true;
     breaks.push({
       event_key: nbimRec.coac_event_key,
       instrument: nbimRec.instrument_name || nbimRec.isin,
@@ -300,24 +309,10 @@ function compareValues(
     });
   }
 
-  // 3. Gross Amount
-  const grossDiff = nbimComp.gross - custComp.gross;
-  if (Math.abs(grossDiff) > tolerance) {
-    breaks.push({
-      event_key: nbimRec.coac_event_key,
-      instrument: nbimRec.instrument_name || nbimRec.isin,
-      isin: nbimRec.isin,
-      break_type: "GROSS_AMOUNT",
-      nbim_value: nbimComp.gross,
-      custody_value: custComp.gross,
-      difference: grossDiff,
-      difference_pct: calculatePercentDiff(nbimComp.gross, custComp.gross),
-    });
-  }
-
-  // 4. Tax Rate
+  // 3. Tax Rate (PRIMARY break)
   const taxRateDiff = nbimRec.total_tax_rate - custodyRec.tax_rate;
   if (Math.abs(taxRateDiff) > TOLERANCE.TAX_RATE) {
+    hasTaxRateBreak = true;
     breaks.push({
       event_key: nbimRec.coac_event_key,
       instrument: nbimRec.instrument_name || nbimRec.isin,
@@ -333,9 +328,32 @@ function compareValues(
     });
   }
 
-  // 5. Tax Amount
+  // 4. Gross Amount (only report if NOT caused by quantity or dividend rate)
+  const grossDiff = nbimComp.gross - custComp.gross;
+  if (
+    Math.abs(grossDiff) > tolerance &&
+    !hasQuantityBreak &&
+    !hasDividendRateBreak
+  ) {
+    breaks.push({
+      event_key: nbimRec.coac_event_key,
+      instrument: nbimRec.instrument_name || nbimRec.isin,
+      isin: nbimRec.isin,
+      break_type: "GROSS_AMOUNT",
+      nbim_value: nbimComp.gross,
+      custody_value: custComp.gross,
+      difference: grossDiff,
+      difference_pct: calculatePercentDiff(nbimComp.gross, custComp.gross),
+    });
+  }
+
+  // 5. Tax Amount (only report if NOT caused by quantity or tax rate)
   const taxAmtDiff = nbimComp.tax - custComp.tax;
-  if (Math.abs(taxAmtDiff) > tolerance) {
+  if (
+    Math.abs(taxAmtDiff) > tolerance &&
+    !hasQuantityBreak &&
+    !hasTaxRateBreak
+  ) {
     breaks.push({
       event_key: nbimRec.coac_event_key,
       instrument: nbimRec.instrument_name || nbimRec.isin,
@@ -348,9 +366,14 @@ function compareValues(
     });
   }
 
-  // 6. Net Amount (only if not already flagged due to quantity/rate differences)
+  // 6. Net Amount (only report if NOT caused by any other root cause)
   const netDiff = nbimComp.net - custComp.net;
-  if (Math.abs(netDiff) > tolerance) {
+  if (
+    Math.abs(netDiff) > tolerance &&
+    !hasQuantityBreak &&
+    !hasDividendRateBreak &&
+    !hasTaxRateBreak
+  ) {
     breaks.push({
       event_key: nbimRec.coac_event_key,
       instrument: nbimRec.instrument_name || nbimRec.isin,
@@ -368,6 +391,7 @@ function compareValues(
 
 /**
  * Compare dates
+ * Only reports if dates actually differ (not just missing)
  */
 function compareDates(
   nbimRec: NBIMRecord,
@@ -375,10 +399,12 @@ function compareDates(
 ): ReconciliationBreak[] {
   const breaks: ReconciliationBreak[] = [];
 
-  // Payment date mismatch (more critical than ex-date)
+  // Payment date mismatch - only report if BOTH exist and DIFFER
   if (
     nbimRec.payment_date &&
     custodyRec.payment_date &&
+    nbimRec.payment_date.trim() !== "" &&
+    custodyRec.payment_date.trim() !== "" &&
     nbimRec.payment_date !== custodyRec.payment_date
   ) {
     breaks.push({
@@ -386,10 +412,10 @@ function compareDates(
       instrument: nbimRec.instrument_name || nbimRec.isin,
       isin: nbimRec.isin,
       break_type: "DATE_MISMATCH",
-      nbim_value: null,
-      custody_value: null,
-      difference: 0,
-      difference_pct: 0,
+      nbim_value: nbimRec.payment_date as any, // Store actual date as string
+      custody_value: custodyRec.payment_date as any,
+      difference: null as any, // Not numeric
+      difference_pct: null as any,
     });
   }
 
