@@ -15,10 +15,18 @@ const severityColors = {
   LOW: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
 };
 
-const breakTypeLabels = {
+const breakTypeLabels: Record<string, string> = {
   QUANTITY: "Quantity",
-  AMOUNT: "Amount",
+  AMOUNT: "Net Amount",
   TAX_RATE: "Tax Rate",
+  TAX_AMOUNT: "Tax Amount",
+  GROSS_AMOUNT: "Gross Amount",
+  DIVIDEND_RATE: "Dividend Rate",
+  FIELD_INCONSISTENCY: "Data Quality",
+  CALCULATION_ERROR: "Calc Error",
+  FX_DIFFERENCE: "FX Rate",
+  DATE_MISMATCH: "Date Mismatch",
+  RESTITUTION_MISMATCH: "Restitution",
   MISSING_RECORD: "Missing",
 };
 

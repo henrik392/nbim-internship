@@ -135,7 +135,7 @@ export function OpenRouterUsage() {
             {/* Usage Breakdown */}
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="rounded-md bg-purple-100 p-3 dark:bg-purple-900/40">
-                <div className="text-purple-600 text-xs font-medium uppercase dark:text-purple-400">
+                <div className="font-medium text-purple-600 text-xs uppercase dark:text-purple-400">
                   Daily
                 </div>
                 <div className="mt-1 font-bold text-lg text-purple-900 dark:text-purple-100">
@@ -143,7 +143,7 @@ export function OpenRouterUsage() {
                 </div>
               </div>
               <div className="rounded-md bg-purple-100 p-3 dark:bg-purple-900/40">
-                <div className="text-purple-600 text-xs font-medium uppercase dark:text-purple-400">
+                <div className="font-medium text-purple-600 text-xs uppercase dark:text-purple-400">
                   Weekly
                 </div>
                 <div className="mt-1 font-bold text-lg text-purple-900 dark:text-purple-100">
@@ -151,7 +151,7 @@ export function OpenRouterUsage() {
                 </div>
               </div>
               <div className="rounded-md bg-purple-100 p-3 dark:bg-purple-900/40">
-                <div className="text-purple-600 text-xs font-medium uppercase dark:text-purple-400">
+                <div className="font-medium text-purple-600 text-xs uppercase dark:text-purple-400">
                   Monthly
                 </div>
                 <div className="mt-1 font-bold text-lg text-purple-900 dark:text-purple-100">

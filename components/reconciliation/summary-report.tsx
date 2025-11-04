@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  AlertCircle,
-  CheckCircle,
-  FileText,
-  TrendingUp,
-} from "lucide-react";
+import { AlertCircle, CheckCircle, FileText, TrendingUp } from "lucide-react";
 import type { ReconciliationSummary } from "@/lib/reconciliation/types";
 
 type SummaryReportProps = {
