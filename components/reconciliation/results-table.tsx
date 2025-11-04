@@ -1,39 +1,40 @@
-'use client';
+"use client";
 
-import { cn } from '@/lib/utils';
-import type { ReconciliationBreak } from '@/lib/reconciliation/types';
+import type { ReconciliationBreak } from "@/lib/reconciliation/types";
+import { cn } from "@/lib/utils";
 
 type ResultsTableProps = {
   breaks: ReconciliationBreak[];
 };
 
 const severityColors = {
-  CRITICAL: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
-  HIGH: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
-  MEDIUM: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
-  LOW: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+  CRITICAL: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
+  HIGH: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
+  MEDIUM:
+    "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300",
+  LOW: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
 };
 
 const breakTypeLabels = {
-  QUANTITY: 'Quantity',
-  AMOUNT: 'Amount',
-  TAX_RATE: 'Tax Rate',
-  MISSING_RECORD: 'Missing',
+  QUANTITY: "Quantity",
+  AMOUNT: "Amount",
+  TAX_RATE: "Tax Rate",
+  MISSING_RECORD: "Missing",
 };
 
 function formatNumber(num: number | null): string {
-  if (num === null) return 'N/A';
-  return new Intl.NumberFormat('en-US', {
+  if (num === null) return "N/A";
+  return new Intl.NumberFormat("en-US", {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   }).format(num);
 }
 
 function formatCurrency(num: number | null): string {
-  if (num === null) return 'N/A';
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
+  if (num === null) return "N/A";
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(num);
@@ -80,10 +81,10 @@ export function ResultsTable({ breaks }: ResultsTableProps) {
           <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
             {breaks.map((breakItem, index) => (
               <tr
-                key={`${breakItem.event_key}-${breakItem.break_type}-${index}`}
                 className="hover:bg-gray-50 dark:hover:bg-gray-900/50"
+                key={`${breakItem.event_key}-${breakItem.break_type}-${index}`}
               >
-                <td className="px-4 py-3 font-mono text-sm text-gray-900 dark:text-gray-100">
+                <td className="px-4 py-3 font-mono text-gray-900 text-sm dark:text-gray-100">
                   {breakItem.event_key}
                 </td>
                 <td className="px-4 py-3 text-sm">
@@ -94,33 +95,33 @@ export function ResultsTable({ breaks }: ResultsTableProps) {
                     {breakItem.isin}
                   </div>
                 </td>
-                <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
+                <td className="px-4 py-3 text-gray-700 text-sm dark:text-gray-300">
                   {breakTypeLabels[breakItem.break_type]}
                 </td>
-                <td className="px-4 py-3 font-mono text-right text-sm text-gray-900 dark:text-gray-100">
-                  {breakItem.break_type === 'AMOUNT'
+                <td className="px-4 py-3 text-right font-mono text-gray-900 text-sm dark:text-gray-100">
+                  {breakItem.break_type === "AMOUNT"
                     ? formatCurrency(breakItem.nbim_value)
                     : formatNumber(breakItem.nbim_value)}
                 </td>
-                <td className="px-4 py-3 font-mono text-right text-sm text-gray-900 dark:text-gray-100">
-                  {breakItem.break_type === 'AMOUNT'
+                <td className="px-4 py-3 text-right font-mono text-gray-900 text-sm dark:text-gray-100">
+                  {breakItem.break_type === "AMOUNT"
                     ? formatCurrency(breakItem.custody_value)
                     : formatNumber(breakItem.custody_value)}
                 </td>
                 <td
                   className={cn(
-                    'px-4 py-3 font-mono text-right text-sm font-medium',
+                    "px-4 py-3 text-right font-medium font-mono text-sm",
                     breakItem.difference > 0
-                      ? 'text-green-600 dark:text-green-400'
-                      : 'text-red-600 dark:text-red-400'
+                      ? "text-green-600 dark:text-green-400"
+                      : "text-red-600 dark:text-red-400"
                   )}
                 >
-                  {breakItem.difference > 0 ? '+' : ''}
-                  {breakItem.break_type === 'AMOUNT'
+                  {breakItem.difference > 0 ? "+" : ""}
+                  {breakItem.break_type === "AMOUNT"
                     ? formatCurrency(breakItem.difference)
                     : formatNumber(breakItem.difference)}
                   <span className="ml-1 text-xs">
-                    ({breakItem.difference_pct > 0 ? '+' : ''}
+                    ({breakItem.difference_pct > 0 ? "+" : ""}
                     {breakItem.difference_pct.toFixed(1)}%)
                   </span>
                 </td>
@@ -128,7 +129,7 @@ export function ResultsTable({ breaks }: ResultsTableProps) {
                   {breakItem.severity && (
                     <span
                       className={cn(
-                        'inline-flex rounded-full px-2.5 py-0.5 font-medium text-xs',
+                        "inline-flex rounded-full px-2.5 py-0.5 font-medium text-xs",
                         severityColors[breakItem.severity]
                       )}
                     >

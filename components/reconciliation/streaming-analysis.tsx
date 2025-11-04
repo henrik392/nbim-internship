@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { cn } from '@/lib/utils';
-import type { ReconciliationBreak } from '@/lib/reconciliation/types';
-import { AlertCircle, CheckCircle, TrendingUp } from 'lucide-react';
+import { AlertCircle, CheckCircle, TrendingUp } from "lucide-react";
+import type { ReconciliationBreak } from "@/lib/reconciliation/types";
+import { cn } from "@/lib/utils";
 
 type StreamingAnalysisProps = {
   breaks: ReconciliationBreak[];
@@ -16,10 +16,10 @@ const severityIcons = {
 };
 
 const severityColors = {
-  CRITICAL: 'text-red-600 dark:text-red-400',
-  HIGH: 'text-orange-600 dark:text-orange-400',
-  MEDIUM: 'text-yellow-600 dark:text-yellow-400',
-  LOW: 'text-green-600 dark:text-green-400',
+  CRITICAL: "text-red-600 dark:text-red-400",
+  HIGH: "text-orange-600 dark:text-orange-400",
+  MEDIUM: "text-yellow-600 dark:text-yellow-400",
+  LOW: "text-green-600 dark:text-green-400",
 };
 
 export function StreamingAnalysis({ breaks }: StreamingAnalysisProps) {
@@ -29,7 +29,7 @@ export function StreamingAnalysis({ breaks }: StreamingAnalysisProps) {
 
   return (
     <div className="space-y-4">
-      <h2 className="font-semibold text-xl text-gray-900 dark:text-gray-100">
+      <h2 className="font-semibold text-gray-900 text-xl dark:text-gray-100">
         LLM Analysis
       </h2>
 
@@ -40,16 +40,16 @@ export function StreamingAnalysis({ breaks }: StreamingAnalysisProps) {
             : AlertCircle;
           const iconColor = breakItem.severity
             ? severityColors[breakItem.severity]
-            : 'text-gray-400';
+            : "text-gray-400";
 
           return (
             <div
-              key={`${breakItem.event_key}-${breakItem.break_type}-${index}`}
               className="rounded-lg border bg-white p-6 shadow-sm dark:bg-gray-950"
+              key={`${breakItem.event_key}-${breakItem.break_type}-${index}`}
             >
               {/* Header */}
               <div className="mb-4 flex items-start gap-4">
-                <Icon className={cn('mt-1 size-6 shrink-0', iconColor)} />
+                <Icon className={cn("mt-1 size-6 shrink-0", iconColor)} />
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="font-semibold text-gray-900 text-lg dark:text-gray-100">
@@ -111,12 +111,12 @@ export function StreamingAnalysis({ breaks }: StreamingAnalysisProps) {
                     <div className="h-2 w-full rounded-full bg-gray-200 dark:bg-gray-700">
                       <div
                         className={cn(
-                          'h-2 rounded-full transition-all',
+                          "h-2 rounded-full transition-all",
                           breakItem.confidence >= 0.9
-                            ? 'bg-green-500'
+                            ? "bg-green-500"
                             : breakItem.confidence >= 0.7
-                              ? 'bg-yellow-500'
-                              : 'bg-red-500'
+                              ? "bg-yellow-500"
+                              : "bg-red-500"
                         )}
                         style={{ width: `${breakItem.confidence * 100}%` }}
                       />

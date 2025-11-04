@@ -1,0 +1,193 @@
+# Cursor Rules for NBIM Dividend Reconciliation System
+
+## Project Context
+
+This is a Next.js AI chatbot template built with the Vercel AI SDK, adapted for an NBIM dividend reconciliation system prototype. The template uses React Server Components, Server Actions, and integrates with multiple LLM providers through Vercel AI Gateway.
+
+## Development Workflow
+
+### Commands
+- Use `pnpm` exclusively (not npm or yarn)
+- `pnpm dev` - Start dev server with Turbopack
+- `pnpm build` - Run migrations + production build
+- `pnpm format` - Auto-fix code formatting and lint issues (run before committing)
+- `pnpm db:migrate` - Apply database migrations
+- `pnpm db:studio` - Open Drizzle Studio for database browsing
+
+### Code Quality
+- Always run `pnpm format` before committing to auto-fix Ultracite (Biome) lint issues
+- No `console.*` statements in production code
+- Follow TypeScript strict mode conventions
+
+## Architecture Patterns
+
+### AI SDK Integration
+- Use `streamText()` for LLM text generation with streaming
+- Use `streamObject()` for structured output with Zod schema validation
+- Model provider setup in `lib/ai/providers.ts` via Vercel AI Gateway
+- Chat streaming in `app/(chat)/api/chat/route.ts`
+- Tools execute during generation, results merged into stream
+
+### Database (Drizzle ORM)
+- Schema location: `lib/db/schema.ts`
+- Always use `Message_v2` and `Vote_v2` tables (not deprecated v1 versions)
+- Never use raw SQL - use Drizzle's type-safe query builder
+- Queries in `lib/db/queries.ts`
+- Run `pnpm db:migrate` before first build
+
+### App Router Structure
+- Page components are async Server Components by default
+- Use Server Actions (inline `"use server"`) for mutations
+- Client components only when needed (mark with `"use client"`)
+- API routes in `app/(chat)/api/*` with Auth.js session validation
+
+### Authentication (Auth.js v5)
+- Setup in `app/(auth)/auth.ts` and `auth.config.ts`
+- Use `await auth()` in Server Components/Actions to get session
+- Sessions stored in database (not JWT)
+
+## TypeScript Rules (Strict)
+
+### Never Use
+- `any` type - Use proper typing or `unknown`
+- Enums - Use `const` objects or string literal unions
+- Namespaces - Use ES modules
+- Non-null assertions (`!`) - Handle nullability properly
+
+### Always Use
+- `import type` and `export type` for type-only imports/exports
+- `as const` for literal types instead of type annotations
+- Explicit enum member initialization
+
+## React Rules
+
+### Requirements
+- All hook dependencies correctly specified
+- Hooks only at top level of component functions
+- Keys required in iterators (no array indices as keys)
+- No nested component definitions
+- Use `<>...</>` instead of `<Fragment>`
+
+### Server Actions Pattern
+```typescript
+"use server"
+
+import { streamObject } from 'ai'
+import { myProvider } from '@/lib/ai/providers'
+import { z } from 'zod'
+
+export async function generateSomething() {
+  const result = await streamObject({
+    model: myProvider.languageModel('chat-model'),
+    schema: z.object({ /* schema */ }),
+    prompt: 'Generate something...',
+  })
+
+  return result.toTextStreamResponse()
+}
+```
+
+### Database Query Pattern
+```typescript
+import { db } from '@/lib/db'
+import { chat } from '@/lib/db/schema'
+import { eq } from 'drizzle-orm'
+
+export async function getChatById({ id }: { id: string }) {
+  const [result] = await db.select()
+    .from(chat)
+    .where(eq(chat.id, id))
+    .limit(1)
+
+  return result
+}
+```
+
+## Code Style
+
+### Mandatory
+- No `var` - Use `const` or `let`
+- Use `===` and `!==` (never `==` or `!=`)
+- Arrow functions preferred over function expressions
+- Template literals over string concatenation
+- `for...of` instead of `Array.forEach()`
+- Numeric separators in large numbers (e.g., `1_000_000`)
+
+### Next.js Specific
+- Don't use `<img>` - Use Next.js `<Image>` component
+- Don't use `<head>` - Use Next.js `metadata` API
+- Don't import `next/document` outside `pages/_document.jsx`
+
+## Accessibility Requirements
+
+- All interactive elements must be keyboard accessible
+- Use semantic HTML over ARIA when possible
+- Include alt text for images (no "image" or "photo" in alt text)
+- Button elements require explicit `type` attribute
+- Label elements must have text content and be associated with inputs
+
+## Technical Constraints
+
+### Next.js 15 Canary + React 19 RC
+- Uses experimental PPR (Partial Pre-Rendering)
+- React Server Components are the default
+- Mark client components explicitly with `"use client"` directive
+- `async`/`await` directly in Server Components is standard
+
+### Vercel AI Gateway
+- Default provider uses gateway URL, not direct provider endpoints
+- Model IDs like `"chat-model"` are gateway-defined
+- Change providers in `lib/ai/providers.ts`
+
+### Streaming Responses
+- Chat API returns SSE (Server-Sent Events) via `JsonToSseTransformStream`
+- Client uses `useChat()` hook from `@ai-sdk/react` to consume stream
+- Tools execute during streaming and results appear in real-time
+
+## Environment Variables
+
+Required in `.env.local`:
+- `POSTGRES_URL` - Neon Serverless Postgres connection string
+- `AUTH_SECRET` - NextAuth.js secret (generate with `openssl rand -base64 32`)
+- `AI_GATEWAY_API_KEY` - Only if deploying outside Vercel
+- `REDIS_URL` - Optional, enables resumable streams
+
+## Document/Artifact System
+
+**Document Kinds**: `text`, `code`, `image`, `sheet`
+
+**Workflow**:
+1. LLM uses `createDocument` tool during chat
+2. Document saved to database with `kind` and `content`
+3. Client renders appropriate editor
+4. User can request edits via `updateDocument` tool
+5. `Suggestion` records track proposed changes
+
+## Before Writing Code
+
+1. Analyze existing patterns in the codebase
+2. Consider edge cases and error scenarios
+3. Follow the rules above strictly
+4. Validate accessibility requirements
+5. Run `pnpm format` before committing
+
+## Error Handling Example
+
+```typescript
+// ✅ Good: Comprehensive error handling
+try {
+  const result = await fetchData();
+  return { success: true, data: result };
+} catch (error) {
+  console.error('API call failed:', error);
+  return { success: false, error: error.message };
+}
+
+// ❌ Bad: Swallowing errors
+try {
+  return await fetchData();
+} catch (e) {
+  console.log(e);
+}
+```
+

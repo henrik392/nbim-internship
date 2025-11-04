@@ -27,11 +27,7 @@ export type CustodyRecord = {
 };
 
 // Break type classification
-export type BreakType =
-  | "QUANTITY"
-  | "AMOUNT"
-  | "TAX_RATE"
-  | "MISSING_RECORD";
+export type BreakType = "QUANTITY" | "AMOUNT" | "TAX_RATE" | "MISSING_RECORD";
 
 // Severity classification
 export type Severity = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";

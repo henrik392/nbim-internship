@@ -1,13 +1,13 @@
-'use client';
+"use client";
 
-import type { ReconciliationSummary } from '@/lib/reconciliation/types';
 import {
   AlertCircle,
   CheckCircle,
   DollarSign,
   FileText,
   TrendingUp,
-} from 'lucide-react';
+} from "lucide-react";
+import type { ReconciliationSummary } from "@/lib/reconciliation/types";
 
 type SummaryReportProps = {
   summary: ReconciliationSummary;
@@ -21,7 +21,7 @@ export function SummaryReport({ summary }: SummaryReportProps) {
 
   return (
     <div className="space-y-6">
-      <h2 className="font-semibold text-xl text-gray-900 dark:text-gray-100">
+      <h2 className="font-semibold text-gray-900 text-xl dark:text-gray-100">
         Summary Report
       </h2>
 
@@ -94,7 +94,10 @@ export function SummaryReport({ summary }: SummaryReportProps) {
           <div className="space-y-3">
             {Object.entries(summary.breaks_by_severity).map(
               ([severity, count]) => (
-                <div key={severity} className="flex items-center justify-between">
+                <div
+                  className="flex items-center justify-between"
+                  key={severity}
+                >
                   <span className="text-gray-700 text-sm dark:text-gray-300">
                     {severity}
                   </span>
@@ -102,13 +105,13 @@ export function SummaryReport({ summary }: SummaryReportProps) {
                     <div className="h-2 w-24 rounded-full bg-gray-200 dark:bg-gray-700">
                       <div
                         className={`h-2 rounded-full ${
-                          severity === 'CRITICAL'
-                            ? 'bg-red-500'
-                            : severity === 'HIGH'
-                              ? 'bg-orange-500'
-                              : severity === 'MEDIUM'
-                                ? 'bg-yellow-500'
-                                : 'bg-green-500'
+                          severity === "CRITICAL"
+                            ? "bg-red-500"
+                            : severity === "HIGH"
+                              ? "bg-orange-500"
+                              : severity === "MEDIUM"
+                                ? "bg-yellow-500"
+                                : "bg-green-500"
                         }`}
                         style={{
                           width: `${(count / summary.total_breaks) * 100}%`,
@@ -132,9 +135,9 @@ export function SummaryReport({ summary }: SummaryReportProps) {
           </h3>
           <div className="space-y-3">
             {Object.entries(summary.breaks_by_type).map(([type, count]) => (
-              <div key={type} className="flex items-center justify-between">
+              <div className="flex items-center justify-between" key={type}>
                 <span className="text-gray-700 text-sm dark:text-gray-300">
-                  {type.replace('_', ' ')}
+                  {type.replace("_", " ")}
                 </span>
                 <div className="flex items-center gap-3">
                   <div className="h-2 w-24 rounded-full bg-gray-200 dark:bg-gray-700">
@@ -167,7 +170,7 @@ export function SummaryReport({ summary }: SummaryReportProps) {
               <div>
                 <span className="text-blue-700 dark:text-blue-300">
                   Total Cost:
-                </span>{' '}
+                </span>{" "}
                 <span className="font-semibold text-blue-900 dark:text-blue-100">
                   ${summary.total_cost.toFixed(2)}
                 </span>
@@ -175,7 +178,7 @@ export function SummaryReport({ summary }: SummaryReportProps) {
               <div>
                 <span className="text-blue-700 dark:text-blue-300">
                   Tokens Used:
-                </span>{' '}
+                </span>{" "}
                 <span className="font-semibold text-blue-900 dark:text-blue-100">
                   {summary.total_tokens.toLocaleString()}
                 </span>
@@ -183,7 +186,7 @@ export function SummaryReport({ summary }: SummaryReportProps) {
               <div>
                 <span className="text-blue-700 dark:text-blue-300">
                   Cost per Event:
-                </span>{' '}
+                </span>{" "}
                 <span className="font-semibold text-blue-900 dark:text-blue-100">
                   ${(summary.total_cost / summary.total_events).toFixed(3)}
                 </span>

@@ -1,41 +1,75 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { UploadZone } from '@/components/reconciliation/upload-zone';
-import { ResultsTable } from '@/components/reconciliation/results-table';
-import { StreamingAnalysis } from '@/components/reconciliation/streaming-analysis';
-import { SummaryReport } from '@/components/reconciliation/summary-report';
-import { mockBreaks, mockSummary } from '@/lib/reconciliation/mock-data';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from "lucide-react";
+import { useState } from "react";
+import { ResultsTable } from "@/components/reconciliation/results-table";
+import { StreamingAnalysis } from "@/components/reconciliation/streaming-analysis";
+import { SummaryReport } from "@/components/reconciliation/summary-report";
+import { UploadZone } from "@/components/reconciliation/upload-zone";
+import { Button } from "@/components/ui/button";
+import type {
+  ReconciliationBreak,
+  ReconciliationSummary,
+} from "@/lib/reconciliation/types";
 
 export default function ReconciliationPage() {
   const [nbimFile, setNbimFile] = useState<File | null>(null);
   const [custodyFile, setCustodyFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [breaks, setBreaks] = useState<ReconciliationBreak[]>([]);
+  const [summary, setSummary] = useState<ReconciliationSummary | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const handleFilesSelected = (nbim: File | null, custody: File | null) => {
     setNbimFile(nbim);
     setCustodyFile(custody);
+    setError(null);
   };
 
   const handleAnalyze = async () => {
     if (!nbimFile || !custodyFile) return;
 
     setIsProcessing(true);
+    setError(null);
 
-    // Simulate processing time
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    try {
+      // Create form data for API request
+      const formData = new FormData();
+      formData.append("nbimFile", nbimFile);
+      formData.append("custodyFile", custodyFile);
 
-    setIsProcessing(false);
-    setShowResults(true);
+      // Call API endpoint
+      const response = await fetch("/api/reconciliation/analyze", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to process files");
+      }
+
+      const data = await response.json();
+
+      setBreaks(data.breaks);
+      setSummary(data.summary);
+      setShowResults(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to process files");
+      console.error("Processing error:", err);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handleReset = () => {
     setShowResults(false);
+    setBreaks([]);
+    setSummary(null);
     setNbimFile(null);
     setCustodyFile(null);
+    setError(null);
   };
 
   const canAnalyze = nbimFile && custodyFile && !isProcessing;
@@ -52,34 +86,71 @@ export default function ReconciliationPage() {
         </p>
       </div>
 
-      {!showResults ? (
+      {showResults ? (
+        /* Results Section */
+        <div className="space-y-8">
+          {/* Back Button */}
+          <div>
+            <Button className="gap-2" onClick={handleReset} variant="outline">
+              <ArrowLeft className="size-4" />
+              New Analysis
+            </Button>
+          </div>
+
+          {/* Summary Report */}
+          {summary && <SummaryReport summary={summary} />}
+
+          {/* Results Table */}
+          <div>
+            <h2 className="mb-4 font-semibold text-gray-900 text-xl dark:text-gray-100">
+              Reconciliation Breaks
+            </h2>
+            <ResultsTable breaks={breaks} />
+          </div>
+
+          {/* Note: LLM Analysis will be added in Milestone 2 */}
+          {breaks.length > 0 && breaks[0].severity && (
+            <StreamingAnalysis breaks={breaks} />
+          )}
+        </div>
+      ) : (
         /* Upload Section */
         <div className="mx-auto max-w-4xl">
           <div className="mb-8 rounded-lg border bg-white p-8 shadow-sm dark:bg-gray-950">
             <h2 className="mb-6 font-semibold text-xl">Upload Files</h2>
             <UploadZone
-              onFilesSelected={handleFilesSelected}
               disabled={isProcessing}
+              onFilesSelected={handleFilesSelected}
             />
 
             {/* Action Button */}
             <div className="mt-8 flex justify-center">
               <Button
-                onClick={handleAnalyze}
-                disabled={!canAnalyze}
-                size="lg"
                 className="min-w-48"
+                disabled={!canAnalyze}
+                onClick={handleAnalyze}
+                size="lg"
               >
                 {isProcessing ? (
                   <>
-                    <span className="mr-2 inline-block size-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent" />
+                    <span className="mr-2 inline-block size-4 animate-spin rounded-full border-2 border-current border-r-transparent border-solid" />
                     Analyzing...
                   </>
                 ) : (
-                  'Start Reconciliation'
+                  "Start Reconciliation"
                 )}
               </Button>
             </div>
+
+            {/* Error Display */}
+            {error && (
+              <div className="mt-6 rounded-md border border-red-200 bg-red-50 p-4 text-sm dark:border-red-900 dark:bg-red-950/20">
+                <h3 className="mb-1 font-medium text-red-900 dark:text-red-100">
+                  Error Processing Files
+                </h3>
+                <p className="text-red-700 dark:text-red-300">{error}</p>
+              </div>
+            )}
 
             {/* File Info */}
             {(nbimFile || custodyFile) && (
@@ -94,7 +165,7 @@ export default function ReconciliationPage() {
                   )}
                   {custodyFile && (
                     <li>
-                      Custody:{' '}
+                      Custody:{" "}
                       <span className="font-mono">{custodyFile.name}</span> (
                       {(custodyFile.size / 1024).toFixed(1)} KB)
                     </li>
@@ -103,35 +174,6 @@ export default function ReconciliationPage() {
               </div>
             )}
           </div>
-        </div>
-      ) : (
-        /* Results Section */
-        <div className="space-y-8">
-          {/* Back Button */}
-          <div>
-            <Button
-              onClick={handleReset}
-              variant="outline"
-              className="gap-2"
-            >
-              <ArrowLeft className="size-4" />
-              New Analysis
-            </Button>
-          </div>
-
-          {/* Summary Report */}
-          <SummaryReport summary={mockSummary} />
-
-          {/* Results Table */}
-          <div>
-            <h2 className="mb-4 font-semibold text-xl text-gray-900 dark:text-gray-100">
-              Reconciliation Breaks
-            </h2>
-            <ResultsTable breaks={mockBreaks} />
-          </div>
-
-          {/* Detailed Analysis */}
-          <StreamingAnalysis breaks={mockBreaks} />
         </div>
       )}
     </div>
