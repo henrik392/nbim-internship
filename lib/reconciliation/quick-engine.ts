@@ -1,7 +1,7 @@
 /**
- * Quick Reconciliation Engine - Fixed for proper matching
- * Matches NBIM and Custody records by ISIN + Bank Account
- * Detects ALL discrepancies per matched pair
+ * Quick Reconciliation Engine - Fixed for event-level aggregation
+ * Aggregates split bookings by Event + ISIN, then compares totals
+ * This handles cases where one dividend event is split across multiple bank accounts
  */
 
 import type {
@@ -12,11 +12,26 @@ import type {
 } from "./types";
 
 /**
+ * Aggregated event data (summed across all accounts for the same event)
+ */
+type AggregatedEvent = {
+  event_key: string;
+  isin: string;
+  instrument_name: string;
+  ex_date: string;
+  total_nominal_basis: number;
+  max_gross_amount: number;
+  total_net_amount: number;
+  tax_rate: number; // Use the rate from the largest booking
+  account_count: number;
+};
+
+/**
  * Match NBIM and Custody records and detect breaks
  * Algorithm:
- * 1. Match records by Event Key + ISIN + Bank Account
- * 2. For each matched pair, check: Quantity, Tax Rate, Amount
- * 3. For unmatched records, create MISSING_RECORD breaks
+ * 1. Aggregate records by Event Key + ISIN (sum nominal basis across accounts)
+ * 2. For each matched event pair, check: Quantity, Tax Rate, Amount
+ * 3. For unmatched events, create MISSING_RECORD breaks
  */
 export function reconcile(
   nbimRecords: NBIMRecord[],
@@ -24,111 +39,111 @@ export function reconcile(
 ): ReconciliationBreak[] {
   const breaks: ReconciliationBreak[] = [];
 
-  // Build lookup maps for custody records
-  const custodyMap = new Map<string, CustodyRecord>();
-  const custodyUsed = new Set<string>();
+  // Aggregate records by Event Key + ISIN
+  const nbimAggregated = aggregateByEvent(nbimRecords);
+  const custodyAggregated = aggregateCustodyByEvent(custodyRecords);
 
-  for (const custodyRec of custodyRecords) {
-    const key = makeMatchKey(
-      custodyRec.coac_event_key,
-      custodyRec.isin,
-      custodyRec.bank_account || ""
-    );
-    custodyMap.set(key, custodyRec);
-  }
+  // Get all unique event keys
+  const allEventKeys = new Set([
+    ...Object.keys(nbimAggregated),
+    ...Object.keys(custodyAggregated),
+  ]);
 
-  // Process each NBIM record
-  for (const nbimRec of nbimRecords) {
-    const matchKey = makeMatchKey(
-      nbimRec.coac_event_key,
-      nbimRec.isin,
-      nbimRec.account_number || ""
-    );
+  for (const eventKey of allEventKeys) {
+    const nbimEvent = nbimAggregated[eventKey];
+    const custodyEvent = custodyAggregated[eventKey];
 
-    const custodyRec = custodyMap.get(matchKey);
-
-    if (!custodyRec) {
-      // Missing in custody - create a single MISSING_RECORD break
+    if (!custodyEvent) {
+      // Missing in custody
       breaks.push({
-        event_key: nbimRec.coac_event_key,
-        instrument: nbimRec.instrument_name || nbimRec.isin,
-        isin: nbimRec.isin,
+        event_key: nbimEvent.event_key,
+        instrument: nbimEvent.instrument_name,
+        isin: nbimEvent.isin,
         break_type: "MISSING_RECORD",
-        nbim_value: nbimRec.nominal_basis,
+        nbim_value: nbimEvent.total_nominal_basis,
         custody_value: null,
-        difference: nbimRec.nominal_basis,
+        difference: nbimEvent.total_nominal_basis,
         difference_pct: 100,
       });
       continue;
     }
 
-    // Mark custody record as matched
-    custodyUsed.add(matchKey);
+    if (!nbimEvent) {
+      // Missing in NBIM
+      breaks.push({
+        event_key: custodyEvent.event_key,
+        instrument: custodyEvent.instrument_name,
+        isin: custodyEvent.isin,
+        break_type: "MISSING_RECORD",
+        nbim_value: null,
+        custody_value: custodyEvent.total_nominal_basis,
+        difference: custodyEvent.total_nominal_basis,
+        difference_pct: 100,
+      });
+      continue;
+    }
 
-    // CHECK 1: Quantity (nominal basis)
+    // CHECK 1: Quantity (total nominal basis)
     // Difference = NBIM - Custody (from NBIM's perspective)
-    const quantityDiff = nbimRec.nominal_basis - custodyRec.nominal_basis;
+    const quantityDiff = nbimEvent.total_nominal_basis - custodyEvent.total_nominal_basis;
     const quantityAbsDiff = Math.abs(quantityDiff);
 
     if (quantityAbsDiff > 1) {
       // Tolerance: 1 share
       breaks.push({
-        event_key: nbimRec.coac_event_key,
-        instrument: nbimRec.instrument_name || nbimRec.isin,
-        isin: nbimRec.isin,
+        event_key: nbimEvent.event_key,
+        instrument: nbimEvent.instrument_name,
+        isin: nbimEvent.isin,
         break_type: "QUANTITY",
-        nbim_value: nbimRec.nominal_basis,
-        custody_value: custodyRec.nominal_basis,
+        nbim_value: nbimEvent.total_nominal_basis,
+        custody_value: custodyEvent.total_nominal_basis,
         difference: quantityDiff,
         difference_pct: calculatePercentDiff(
-          nbimRec.nominal_basis,
-          custodyRec.nominal_basis
+          nbimEvent.total_nominal_basis,
+          custodyEvent.total_nominal_basis
         ),
       });
     }
 
     // CHECK 2: Tax Rate
     // Difference = NBIM - Custody
-    const taxDiff = nbimRec.wthtax_rate - custodyRec.tax_rate;
+    const taxDiff = nbimEvent.tax_rate - custodyEvent.tax_rate;
     const taxAbsDiff = Math.abs(taxDiff);
 
     if (taxAbsDiff > 0.01) {
       // Tolerance: 0.01%
       breaks.push({
-        event_key: nbimRec.coac_event_key,
-        instrument: nbimRec.instrument_name || nbimRec.isin,
-        isin: nbimRec.isin,
+        event_key: nbimEvent.event_key,
+        instrument: nbimEvent.instrument_name,
+        isin: nbimEvent.isin,
         break_type: "TAX_RATE",
-        nbim_value: nbimRec.wthtax_rate,
-        custody_value: custodyRec.tax_rate,
+        nbim_value: nbimEvent.tax_rate,
+        custody_value: custodyEvent.tax_rate,
         difference: taxDiff,
         difference_pct: calculatePercentDiff(
-          nbimRec.wthtax_rate,
-          custodyRec.tax_rate
+          nbimEvent.tax_rate,
+          custodyEvent.tax_rate
         ),
       });
     }
 
-    // CHECK 3: Amount (compare in QUOTATION currency - original dividend currency)
-    // NBIM has net_amount_quotation (USD, KRW, CHF, etc.)
-    // Custody has net_amount_qc (same quotation currency)
-    // Both are in the SAME currency so direct comparison is valid
+    // CHECK 3: Amount (compare total net amounts in quotation currency)
+    // Both aggregated amounts are in the same quotation currency
     // Difference = NBIM - Custody (in quotation currency)
-    // Note: For display, we convert to NOK, but comparison must be in same currency
-    const nbimAmount = nbimRec.net_amount_quotation || 0;
-    const custodyAmount = custodyRec.net_amount_qc;
+    const nbimAmount = nbimEvent.total_net_amount;
+    const custodyAmount = custodyEvent.total_net_amount;
 
     const amountDiff = nbimAmount - custodyAmount;
     const amountAbsDiff = Math.abs(amountDiff);
 
-    // Tolerance: 0.01% or $1, whichever is larger
+    // Tolerance: 0.01% or 1 unit, whichever is larger
     const tolerance = Math.max(Math.abs(nbimAmount) * 0.0001, 1.0);
 
     if (amountAbsDiff > tolerance) {
       breaks.push({
-        event_key: nbimRec.coac_event_key,
-        instrument: nbimRec.instrument_name || nbimRec.isin,
-        isin: nbimRec.isin,
+        event_key: nbimEvent.event_key,
+        instrument: nbimEvent.instrument_name,
+        isin: nbimEvent.isin,
         break_type: "AMOUNT",
         nbim_value: nbimAmount,
         custody_value: custodyAmount,
@@ -138,29 +153,92 @@ export function reconcile(
     }
   }
 
-  // Check for custody records not in NBIM
-  for (const custodyRec of custodyRecords) {
-    const matchKey = makeMatchKey(
-      custodyRec.coac_event_key,
-      custodyRec.isin,
-      custodyRec.bank_account || ""
-    );
+  return breaks;
+}
 
-    if (!custodyUsed.has(matchKey)) {
-      breaks.push({
-        event_key: custodyRec.coac_event_key,
-        instrument: custodyRec.instrument_name || custodyRec.isin,
-        isin: custodyRec.isin,
-        break_type: "MISSING_RECORD",
-        nbim_value: null,
-        custody_value: custodyRec.nominal_basis,
-        difference: custodyRec.nominal_basis,
-        difference_pct: 100,
-      });
+/**
+ * Aggregate NBIM records by Event Key + ISIN
+ * Sums nominal basis and net amounts, uses max gross amount
+ */
+function aggregateByEvent(
+  records: NBIMRecord[]
+): Record<string, AggregatedEvent> {
+  const aggregated: Record<string, AggregatedEvent> = {};
+
+  for (const record of records) {
+    const key = `${record.coac_event_key}|${record.isin}`;
+
+    if (!aggregated[key]) {
+      aggregated[key] = {
+        event_key: record.coac_event_key,
+        isin: record.isin,
+        instrument_name: record.instrument_name || record.isin,
+        ex_date: record.ex_date || "",
+        total_nominal_basis: 0,
+        max_gross_amount: 0,
+        total_net_amount: 0,
+        tax_rate: record.wthtax_rate,
+        account_count: 0,
+      };
+    }
+
+    const agg = aggregated[key];
+    agg.total_nominal_basis += record.nominal_basis;
+    agg.total_net_amount += record.net_amount_quotation || 0;
+    agg.max_gross_amount = Math.max(
+      agg.max_gross_amount,
+      record.gross_amount_quotation || 0
+    );
+    agg.account_count++;
+
+    // Use tax rate from the largest booking
+    if ((record.gross_amount_quotation || 0) > agg.max_gross_amount) {
+      agg.tax_rate = record.wthtax_rate;
     }
   }
 
-  return breaks;
+  return aggregated;
+}
+
+/**
+ * Aggregate Custody records by Event Key + ISIN
+ * Sums nominal basis and net amounts, uses max gross amount
+ */
+function aggregateCustodyByEvent(
+  records: CustodyRecord[]
+): Record<string, AggregatedEvent> {
+  const aggregated: Record<string, AggregatedEvent> = {};
+
+  for (const record of records) {
+    const key = `${record.coac_event_key}|${record.isin}`;
+
+    if (!aggregated[key]) {
+      aggregated[key] = {
+        event_key: record.coac_event_key,
+        isin: record.isin,
+        instrument_name: record.instrument_name || record.isin,
+        ex_date: record.ex_date || "",
+        total_nominal_basis: 0,
+        max_gross_amount: 0,
+        total_net_amount: 0,
+        tax_rate: record.tax_rate,
+        account_count: 0,
+      };
+    }
+
+    const agg = aggregated[key];
+    agg.total_nominal_basis += record.nominal_basis;
+    agg.total_net_amount += record.net_amount_qc;
+    agg.max_gross_amount = Math.max(agg.max_gross_amount, record.gross_amount);
+    agg.account_count++;
+
+    // Use tax rate from the largest booking
+    if (record.gross_amount > agg.max_gross_amount) {
+      agg.tax_rate = record.tax_rate;
+    }
+  }
+
+  return aggregated;
 }
 
 /**
@@ -170,6 +248,7 @@ export function generateSummary(
   breaks: ReconciliationBreak[],
   nbimRecords: NBIMRecord[]
 ): ReconciliationSummary {
+  // Count unique events (by event key)
   const uniqueEvents = new Set(nbimRecords.map((r) => r.coac_event_key));
   const eventsWithBreaks = new Set(breaks.map((b) => b.event_key));
 
@@ -206,20 +285,6 @@ export function generateSummary(
     total_cost: 0,
     total_tokens: 0,
   };
-}
-
-// Helper functions
-
-/**
- * Create a unique matching key for NBIM-Custody pairing
- * Format: "EventKey|ISIN|BankAccount"
- */
-function makeMatchKey(
-  eventKey: string,
-  isin: string,
-  bankAccount: string
-): string {
-  return `${eventKey}|${isin}|${bankAccount}`;
 }
 
 /**
