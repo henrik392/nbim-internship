@@ -114,10 +114,13 @@ export function reconcile(
     breaks.push(...dateBreaks);
 
     // STEP 6: Check FX (for cross-currency)
-    if (custodyRec.fx_rate) {
-      const fxBreaks = compareFX(nbimRec, custodyRec);
-      breaks.push(...fxBreaks);
-    }
+    // NOTE: Disabled - FX rates may represent different currency pairs
+    // (e.g., NBIM: KRW→NOK, Custody: USD→KRW) so direct comparison is invalid
+    // FX differences will surface as amount discrepancies instead
+    // if (custodyRec.fx_rate) {
+    //   const fxBreaks = compareFX(nbimRec, custodyRec);
+    //   breaks.push(...fxBreaks);
+    // }
 
     // STEP 7: Check restitution
     if (nbimRec.restitution_rate && custodyRec.restitution_amount) {
@@ -424,6 +427,7 @@ function compareDates(
 
 /**
  * Compare FX rates
+ * Handles cases where rates may be reciprocals (e.g., KRW→NOK vs NOK→KRW)
  */
 function compareFX(
   nbimRec: NBIMRecord,
@@ -431,9 +435,39 @@ function compareFX(
 ): ReconciliationBreak[] {
   const breaks: ReconciliationBreak[] = [];
 
-  if (custodyRec.fx_rate && nbimRec.fx_rate) {
+  if (!custodyRec.fx_rate || !nbimRec.fx_rate) {
+    return breaks;
+  }
+
+  // Normalize: if rates are very different magnitudes, they might be reciprocals
+  const ratio = Math.max(nbimRec.fx_rate, custodyRec.fx_rate) /
+                Math.min(nbimRec.fx_rate, custodyRec.fx_rate);
+
+  // If ratio > 100, they're likely in different directions (reciprocals)
+  if (ratio > 100) {
+    // Check if they're reciprocals (1/x relationship)
+    const reciprocal = 1 / custodyRec.fx_rate;
+    const diffFromReciprocal = Math.abs(nbimRec.fx_rate - reciprocal) / reciprocal;
+
+    // Only flag if they differ by more than 0.5% even as reciprocals
+    if (diffFromReciprocal > 0.005) {
+      breaks.push({
+        event_key: nbimRec.coac_event_key,
+        instrument: nbimRec.instrument_name || nbimRec.isin,
+        isin: nbimRec.isin,
+        break_type: "FX_DIFFERENCE",
+        nbim_value: nbimRec.fx_rate,
+        custody_value: custodyRec.fx_rate,
+        difference: nbimRec.fx_rate - reciprocal,
+        difference_pct: diffFromReciprocal * 100,
+      });
+    }
+  } else {
+    // Same direction - compare directly
     const fxDiff = Math.abs(nbimRec.fx_rate - custodyRec.fx_rate);
-    if (fxDiff > TOLERANCE.FX_RATE) {
+    const fxDiffPct = fxDiff / nbimRec.fx_rate;
+
+    if (fxDiffPct > 0.005) { // 0.5% tolerance
       breaks.push({
         event_key: nbimRec.coac_event_key,
         instrument: nbimRec.instrument_name || nbimRec.isin,
@@ -442,10 +476,7 @@ function compareFX(
         nbim_value: nbimRec.fx_rate,
         custody_value: custodyRec.fx_rate,
         difference: nbimRec.fx_rate - custodyRec.fx_rate,
-        difference_pct: calculatePercentDiff(
-          nbimRec.fx_rate,
-          custodyRec.fx_rate
-        ),
+        difference_pct: fxDiffPct * 100,
       });
     }
   }
