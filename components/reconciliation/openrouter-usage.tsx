@@ -84,17 +84,17 @@ export function OpenRouterUsage() {
     : null;
 
   return (
-    <div className="rounded-lg border border-purple-200 bg-purple-50 p-6 dark:border-purple-900 dark:bg-purple-950/20">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-3">
-          <DollarSign className="mt-1 size-6 text-purple-600 dark:text-purple-400" />
+    <div className="rounded-lg border border-purple-200 bg-purple-50 p-6 shadow-sm dark:border-purple-900 dark:bg-purple-950/20">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start gap-4">
+          <DollarSign className="mt-1 size-8 text-purple-600 dark:text-purple-400" />
           <div className="flex-1">
-            <div className="mb-2 flex items-center gap-2">
-              <h3 className="font-semibold text-purple-900 dark:text-purple-100">
+            <div className="mb-4 flex items-center gap-3">
+              <h3 className="font-semibold text-lg text-purple-900 dark:text-purple-100">
                 OpenRouter API Usage
               </h3>
               {data.is_free_tier && (
-                <span className="rounded bg-purple-200 px-2 py-0.5 font-medium text-purple-800 text-xs dark:bg-purple-800 dark:text-purple-200">
+                <span className="rounded bg-purple-200 px-2 py-1 font-medium text-purple-800 text-xs dark:bg-purple-800 dark:text-purple-200">
                   Free Tier
                 </span>
               )}
@@ -102,16 +102,16 @@ export function OpenRouterUsage() {
 
             {/* Credit Limit & Remaining */}
             {hasLimit && (
-              <div className="mb-4">
-                <div className="mb-2 flex items-center justify-between text-sm">
+              <div className="mb-6">
+                <div className="mb-3 flex items-center justify-between">
                   <span className="text-purple-700 dark:text-purple-300">
                     Credits Used:
                   </span>
-                  <span className="font-semibold text-purple-900 dark:text-purple-100">
+                  <span className="font-bold text-lg text-purple-900 dark:text-purple-100">
                     ${data.usage.toFixed(2)} / ${data.limit?.toFixed(2) ?? "∞"}
                   </span>
                 </div>
-                <div className="h-3 overflow-hidden rounded-full bg-purple-200 dark:bg-purple-900">
+                <div className="h-4 overflow-hidden rounded-full bg-purple-200 dark:bg-purple-900">
                   <div
                     className={`h-full rounded-full transition-all ${
                       Number(usagePercent) > 80
@@ -125,7 +125,7 @@ export function OpenRouterUsage() {
                     }}
                   />
                 </div>
-                <div className="mt-1 text-right text-purple-600 text-xs dark:text-purple-400">
+                <div className="mt-2 text-right text-purple-600 text-sm dark:text-purple-400">
                   {usagePercent}% used • $
                   {data.limit_remaining?.toFixed(2) ?? "0.00"} remaining
                 </div>
@@ -133,40 +133,40 @@ export function OpenRouterUsage() {
             )}
 
             {/* Usage Breakdown */}
-            <div className="grid gap-3 text-sm sm:grid-cols-3">
-              <div>
-                <span className="text-purple-700 dark:text-purple-300">
-                  Daily:
-                </span>{" "}
-                <span className="font-semibold text-purple-900 dark:text-purple-100">
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="rounded-md bg-purple-100 p-3 dark:bg-purple-900/40">
+                <div className="text-purple-600 text-xs font-medium uppercase dark:text-purple-400">
+                  Daily
+                </div>
+                <div className="mt-1 font-bold text-lg text-purple-900 dark:text-purple-100">
                   ${data.usage_daily.toFixed(4)}
-                </span>
+                </div>
               </div>
-              <div>
-                <span className="text-purple-700 dark:text-purple-300">
-                  Weekly:
-                </span>{" "}
-                <span className="font-semibold text-purple-900 dark:text-purple-100">
+              <div className="rounded-md bg-purple-100 p-3 dark:bg-purple-900/40">
+                <div className="text-purple-600 text-xs font-medium uppercase dark:text-purple-400">
+                  Weekly
+                </div>
+                <div className="mt-1 font-bold text-lg text-purple-900 dark:text-purple-100">
                   ${data.usage_weekly.toFixed(4)}
-                </span>
+                </div>
               </div>
-              <div>
-                <span className="text-purple-700 dark:text-purple-300">
-                  Monthly:
-                </span>{" "}
-                <span className="font-semibold text-purple-900 dark:text-purple-100">
+              <div className="rounded-md bg-purple-100 p-3 dark:bg-purple-900/40">
+                <div className="text-purple-600 text-xs font-medium uppercase dark:text-purple-400">
+                  Monthly
+                </div>
+                <div className="mt-1 font-bold text-lg text-purple-900 dark:text-purple-100">
                   ${data.usage_monthly.toFixed(4)}
-                </span>
+                </div>
               </div>
             </div>
 
             {/* Limit Reset Info */}
             {data.limit_reset && (
-              <div className="mt-3 rounded border border-purple-300 bg-purple-100/50 p-2 text-sm dark:border-purple-800 dark:bg-purple-900/30">
+              <div className="mt-4 rounded border border-purple-300 bg-purple-100/50 p-3 dark:border-purple-800 dark:bg-purple-900/30">
                 <span className="text-purple-700 dark:text-purple-300">
                   Limit resets:{" "}
                 </span>
-                <span className="font-medium text-purple-900 dark:text-purple-100">
+                <span className="font-semibold text-purple-900 dark:text-purple-100">
                   {data.limit_reset}
                 </span>
               </div>
@@ -176,7 +176,7 @@ export function OpenRouterUsage() {
 
         {/* Refresh Button */}
         <Button onClick={fetchUsage} size="sm" type="button" variant="outline">
-          <RefreshCw className={`size-3 ${isLoading ? "animate-spin" : ""}`} />
+          <RefreshCw className={`size-4 ${isLoading ? "animate-spin" : ""}`} />
         </Button>
       </div>
     </div>
