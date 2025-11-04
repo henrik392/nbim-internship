@@ -2,6 +2,7 @@
 
 import { ArrowLeft } from "lucide-react";
 import { useState } from "react";
+import { OpenRouterUsage } from "@/components/reconciliation/openrouter-usage";
 import {
   ProgressIndicator,
   type WorkflowStage,
@@ -116,6 +117,9 @@ export default function ReconciliationPage() {
 
           {/* Summary Report */}
           {summary && <SummaryReport summary={summary} />}
+
+          {/* OpenRouter Usage */}
+          <OpenRouterUsage />
 
           {/* Results Table */}
           <div>
