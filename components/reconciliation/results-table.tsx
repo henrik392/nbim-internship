@@ -125,12 +125,12 @@ export function ResultsTable({ breaks }: ResultsTableProps) {
                 </td>
                 <td className="px-4 py-3 text-right font-mono text-gray-900 text-sm dark:text-gray-100">
                   {breakItem.break_type === "AMOUNT"
-                    ? formatCurrency(breakItem.nbim_value)
+                    ? formatNumber(breakItem.nbim_value)
                     : formatNumber(breakItem.nbim_value)}
                 </td>
                 <td className="px-4 py-3 text-right font-mono text-gray-900 text-sm dark:text-gray-100">
                   {breakItem.break_type === "AMOUNT"
-                    ? formatCurrency(breakItem.custody_value)
+                    ? formatNumber(breakItem.custody_value)
                     : formatNumber(breakItem.custody_value)}
                 </td>
                 <td
@@ -143,7 +143,7 @@ export function ResultsTable({ breaks }: ResultsTableProps) {
                 >
                   {breakItem.difference > 0 ? "+" : ""}
                   {breakItem.break_type === "AMOUNT"
-                    ? formatCurrency(breakItem.difference)
+                    ? formatNumber(breakItem.difference)
                     : formatNumber(breakItem.difference)}
                   <span className="ml-1 text-xs">
                     ({breakItem.difference_pct > 0 ? "+" : ""}

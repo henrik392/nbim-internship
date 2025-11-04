@@ -109,13 +109,14 @@ export function reconcile(
       });
     }
 
-    // CHECK 3: Amount (compare in portfolio currency - NOK)
-    // NBIM has net_amount_portfolio (in NOK - NBIM's book currency)
-    // Custody amounts need to be converted, but for now we use quotation currency
-    // Both should be compared in the same currency
-    // Difference = NBIM - Custody (in NOK)
-    const nbimAmount = nbimRec.net_amount_portfolio || 0;
-    const custodyAmount = custodyRec.net_amount_sc; // This should be converted to NOK in production
+    // CHECK 3: Amount (compare in QUOTATION currency - original dividend currency)
+    // NBIM has net_amount_quotation (USD, KRW, CHF, etc.)
+    // Custody has net_amount_qc (same quotation currency)
+    // Both are in the SAME currency so direct comparison is valid
+    // Difference = NBIM - Custody (in quotation currency)
+    // Note: For display, we convert to NOK, but comparison must be in same currency
+    const nbimAmount = nbimRec.net_amount_quotation || 0;
+    const custodyAmount = custodyRec.net_amount_qc;
 
     const amountDiff = nbimAmount - custodyAmount;
     const amountAbsDiff = Math.abs(amountDiff);

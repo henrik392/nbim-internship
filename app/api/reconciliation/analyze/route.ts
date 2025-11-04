@@ -178,16 +178,16 @@ async function analyzeBreakWithLLM(breakItem: ReconciliationBreak): Promise<{
 
 Provide your analysis following these guidelines:
 1. **Severity**: Assess financial impact (amounts in NOK - Norwegian Kroner)
-   - CRITICAL: 
+   - CRITICAL:
      * Quantity differences >50%
      * Amount >1M NOK or >50%
      * Tax rate differences: Calculate financial impact (gross amount × tax rate difference ÷ 100)
        - If tax impact >100K NOK → CRITICAL
-   - HIGH: 
+   - HIGH:
      * Quantity differences 10-50%
      * Amount 100K-1M NOK or 10-50%
      * Tax rate differences with impact 10K-100K NOK (even small % point differences on large positions)
-   - MEDIUM: 
+   - MEDIUM:
      * Quantity differences 1-10%
      * Amount 10K-100K NOK or 1-10%
      * Tax rate differences with impact 1K-10K NOK
