@@ -54,9 +54,9 @@ function formatCurrency(num: number | null): string {
   if (num === null) {
     return "N/A";
   }
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat("nb-NO", {
     style: "currency",
-    currency: "USD",
+    currency: "NOK",
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(num);

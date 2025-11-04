@@ -177,11 +177,21 @@ async function analyzeBreakWithLLM(breakItem: ReconciliationBreak): Promise<{
 - Difference: ${breakItem.difference.toLocaleString()} (${breakItem.difference_pct.toFixed(1)}%)
 
 Provide your analysis following these guidelines:
-1. **Severity**: Assess financial impact
-   - CRITICAL: Quantity differences >50%, Amount >$100K or >50%, Tax rate differences >10%
-   - HIGH: Quantity differences 10-50%, Amount >$10K or 10-50%, Tax rate differences 5-10%
-   - MEDIUM: Quantity differences 1-10%, Amount >$1K or 1-10%, Tax rate differences 1-5%
-   - LOW: Small differences <1%, likely rounding or minor discrepancies
+1. **Severity**: Assess financial impact (amounts in NOK - Norwegian Kroner)
+   - CRITICAL: 
+     * Quantity differences >50%
+     * Amount >1M NOK or >50%
+     * Tax rate differences: Calculate financial impact (gross amount × tax rate difference ÷ 100)
+       - If tax impact >100K NOK → CRITICAL
+   - HIGH: 
+     * Quantity differences 10-50%
+     * Amount 100K-1M NOK or 10-50%
+     * Tax rate differences with impact 10K-100K NOK (even small % point differences on large positions)
+   - MEDIUM: 
+     * Quantity differences 1-10%
+     * Amount 10K-100K NOK or 1-10%
+     * Tax rate differences with impact 1K-10K NOK
+   - LOW: Small differences <1%, tax impact <1K NOK, likely rounding
 
 2. **Root Cause**: Identify the most likely reason
    - Securities lending (quantity discrepancies)
@@ -205,9 +215,12 @@ Provide your analysis following these guidelines:
 
 Context:
 - This is a real-money dividend reconciliation for NBIM (Norwegian sovereign wealth fund)
+- All amounts are in NOK (Norwegian Kroner) - NBIM's portfolio currency
 - Quantity breaks often indicate securities lending, split bookings, or data errors
 - Large quantity discrepancies (>50%) are always CRITICAL and require immediate investigation
-- Tax rate breaks may involve treaty applications
+- **Tax rate breaks**: Even small % point differences have LARGE financial impact on big positions
+  * Example: 2pp difference on 100M NOK position = 2M NOK impact → HIGH or CRITICAL
+  * Always calculate: (gross amount in NOK) × (tax rate difference ÷ 100) to assess severity
 - Amount breaks can be secondary effects of quantity/tax differences
 - CRITICAL severity must always route to "escalation"`;
 
