@@ -86,7 +86,7 @@ export function OpenRouterUsage() {
   return (
     <div className="rounded-lg border border-purple-200 bg-purple-50 p-6 shadow-sm dark:border-purple-900 dark:bg-purple-950/20">
       <div className="flex items-start justify-between gap-4">
-        <div className="flex items-start gap-4">
+        <div className="flex flex-1 items-start gap-4">
           <DollarSign className="mt-1 size-8 text-purple-600 dark:text-purple-400" />
           <div className="flex-1">
             <div className="mb-4 flex items-center gap-3">
