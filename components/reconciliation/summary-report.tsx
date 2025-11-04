@@ -3,7 +3,6 @@
 import {
   AlertCircle,
   CheckCircle,
-  DollarSign,
   FileText,
   TrendingUp,
 } from "lucide-react";
@@ -154,97 +153,6 @@ export function SummaryReport({ summary }: SummaryReportProps) {
                 </div>
               </div>
             ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Cost Information with Budget Tracking */}
-      <div className="rounded-lg border border-blue-200 bg-blue-50 p-6 dark:border-blue-900 dark:bg-blue-950/20">
-        <div className="flex items-start gap-3">
-          <DollarSign className="mt-1 size-6 text-blue-600 dark:text-blue-400" />
-          <div className="flex-1">
-            <h3 className="mb-2 font-semibold text-blue-900 dark:text-blue-100">
-              Analysis Cost & Budget
-            </h3>
-
-            {/* Budget Progress Bar */}
-            <div className="mb-4">
-              <div className="mb-2 flex items-center justify-between text-sm">
-                <span className="text-blue-700 dark:text-blue-300">
-                  Budget Used:
-                </span>
-                <span className="font-semibold text-blue-900 dark:text-blue-100">
-                  ${summary.total_cost.toFixed(4)} / $15.00
-                </span>
-              </div>
-              <div className="h-3 overflow-hidden rounded-full bg-blue-200 dark:bg-blue-900">
-                <div
-                  className={`h-full rounded-full transition-all ${
-                    (summary.total_cost / 15) * 100 > 80
-                      ? "bg-red-500"
-                      : (summary.total_cost / 15) * 100 > 50
-                        ? "bg-orange-500"
-                        : "bg-green-500"
-                  }`}
-                  style={{
-                    width: `${Math.min((summary.total_cost / 15) * 100, 100)}%`,
-                  }}
-                />
-              </div>
-              <div className="mt-1 text-right text-blue-600 text-xs dark:text-blue-400">
-                {((summary.total_cost / 15) * 100).toFixed(2)}% of budget
-              </div>
-            </div>
-
-            {/* Cost Metrics */}
-            <div className="grid gap-4 text-sm sm:grid-cols-3">
-              <div>
-                <span className="text-blue-700 dark:text-blue-300">
-                  Tokens Used:
-                </span>{" "}
-                <span className="font-semibold text-blue-900 dark:text-blue-100">
-                  {summary.total_tokens.toLocaleString()}
-                </span>
-              </div>
-              <div>
-                <span className="text-blue-700 dark:text-blue-300">
-                  Cost per Break:
-                </span>{" "}
-                <span className="font-semibold text-blue-900 dark:text-blue-100">
-                  ${(summary.total_cost / summary.total_breaks).toFixed(4)}
-                </span>
-              </div>
-              <div>
-                <span className="text-blue-700 dark:text-blue-300">
-                  Remaining Budget:
-                </span>{" "}
-                <span className="font-semibold text-blue-900 dark:text-blue-100">
-                  ${(15 - summary.total_cost).toFixed(2)}
-                </span>
-              </div>
-            </div>
-
-            {/* Scale Projection */}
-            {summary.total_cost > 0 && (
-              <div className="mt-4 rounded border border-blue-300 bg-blue-100/50 p-3 text-sm dark:border-blue-800 dark:bg-blue-900/30">
-                <span className="font-medium text-blue-900 dark:text-blue-100">
-                  💡 Scale Projection:
-                </span>{" "}
-                <span className="text-blue-700 dark:text-blue-300">
-                  At this rate, you could analyze{" "}
-                  <strong className="text-blue-900 dark:text-blue-100">
-                    {Math.floor(
-                      (15 / summary.total_cost) * summary.total_breaks
-                    )}
-                  </strong>{" "}
-                  breaks within the $15 budget
-                  {Math.floor(
-                    (15 / summary.total_cost) * summary.total_breaks
-                  ) >= 8000 &&
-                    " - easily handling 8,000+ annual dividend events!"}
-                </span>
-              </div>
-            )}
           </div>
         </div>
       </div>
