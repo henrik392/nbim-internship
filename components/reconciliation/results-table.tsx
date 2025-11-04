@@ -16,18 +16,18 @@ const severityColors = {
 };
 
 const breakTypeLabels: Record<string, string> = {
-  QUANTITY: "Quantity",
-  AMOUNT: "Net Amount",
-  TAX_RATE: "Tax Rate",
-  TAX_AMOUNT: "Tax Amount",
-  GROSS_AMOUNT: "Gross Amount",
-  DIVIDEND_RATE: "Dividend Rate",
-  FIELD_INCONSISTENCY: "Data Quality",
-  CALCULATION_ERROR: "Calc Error",
-  FX_DIFFERENCE: "FX Rate",
+  QUANTITY: "Quantity Mismatch",
+  AMOUNT: "Amount Mismatch",
+  TAX_RATE: "Tax Rate Mismatch",
+  TAX_AMOUNT: "Tax Amount Mismatch",
+  GROSS_AMOUNT: "Gross Amount Mismatch",
+  DIVIDEND_RATE: "Dividend Rate Mismatch",
+  FIELD_INCONSISTENCY: "Data Quality Issue",
+  CALCULATION_ERROR: "Calculation Error",
+  FX_DIFFERENCE: "FX Rate Mismatch",
   DATE_MISMATCH: "Date Mismatch",
-  RESTITUTION_MISMATCH: "Restitution",
-  MISSING_RECORD: "Missing",
+  RESTITUTION_MISMATCH: "Restitution Mismatch",
+  MISSING_RECORD: "Missing Record",
 };
 
 const remediationColors = {
