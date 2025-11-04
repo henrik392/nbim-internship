@@ -103,21 +103,6 @@ export default function ReconciliationPage() {
               </div>
             )}
           </div>
-
-          {/* Instructions */}
-          <div className="mt-8 rounded-lg border border-blue-200 bg-blue-50 p-6 dark:border-blue-900 dark:bg-blue-950/20">
-            <h3 className="mb-3 font-semibold text-blue-900 dark:text-blue-100">
-              How it works
-            </h3>
-            <ol className="space-y-2 text-blue-800 text-sm dark:text-blue-200">
-              <li>1. Upload your NBIM booking and custodian CSV files</li>
-              <li>2. Click "Start Reconciliation" to analyze discrepancies</li>
-              <li>
-                3. Review LLM-powered severity classifications and recommendations
-              </li>
-              <li>4. Export results or take action on identified breaks</li>
-            </ol>
-          </div>
         </div>
       ) : (
         /* Results Section */

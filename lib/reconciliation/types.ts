@@ -67,6 +67,7 @@ export type BreakAnalysis = {
 // Summary statistics
 export type ReconciliationSummary = {
   total_events: number;
+  events_with_breaks: number;
   total_breaks: number;
   breaks_by_severity: {
     CRITICAL: number;

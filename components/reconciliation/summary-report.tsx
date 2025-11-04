@@ -17,7 +17,7 @@ export function SummaryReport({ summary }: SummaryReportProps) {
   const criticalCount =
     summary.breaks_by_severity.CRITICAL + summary.breaks_by_severity.HIGH;
   const totalEvents = summary.total_events;
-  const cleanEvents = totalEvents - summary.total_breaks;
+  const cleanEvents = totalEvents - summary.events_with_breaks;
 
   return (
     <div className="space-y-6">

@@ -111,6 +111,7 @@ export const mockBreaks: ReconciliationBreak[] = [
 
 export const mockSummary: ReconciliationSummary = {
   total_events: 3,
+  events_with_breaks: 2, // Samsung and Nestlé have breaks, Apple is clean
   total_breaks: 6,
   breaks_by_severity: {
     CRITICAL: 2,
