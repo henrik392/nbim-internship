@@ -2,6 +2,10 @@
 
 import { ArrowLeft } from "lucide-react";
 import { useState } from "react";
+import {
+  ProgressIndicator,
+  type WorkflowStage,
+} from "@/components/reconciliation/progress-indicator";
 import { ResultsTable } from "@/components/reconciliation/results-table";
 import { StreamingAnalysis } from "@/components/reconciliation/streaming-analysis";
 import { SummaryReport } from "@/components/reconciliation/summary-report";
@@ -20,6 +24,7 @@ export default function ReconciliationPage() {
   const [breaks, setBreaks] = useState<ReconciliationBreak[]>([]);
   const [summary, setSummary] = useState<ReconciliationSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [currentStage, setCurrentStage] = useState<WorkflowStage>("upload");
 
   const handleFilesSelected = (nbim: File | null, custody: File | null) => {
     setNbimFile(nbim);
@@ -28,12 +33,19 @@ export default function ReconciliationPage() {
   };
 
   const handleAnalyze = async () => {
-    if (!nbimFile || !custodyFile) return;
+    if (!nbimFile || !custodyFile) {
+      return;
+    }
 
     setIsProcessing(true);
     setError(null);
+    setCurrentStage("parsing");
 
     try {
+      // Simulate progress stages
+      setTimeout(() => setCurrentStage("matching"), 300);
+      setTimeout(() => setCurrentStage("analyzing"), 600);
+
       // Create form data for API request
       const formData = new FormData();
       formData.append("nbimFile", nbimFile);
@@ -52,12 +64,16 @@ export default function ReconciliationPage() {
 
       const data = await response.json();
 
+      setCurrentStage("complete");
       setBreaks(data.breaks);
       setSummary(data.summary);
-      setShowResults(true);
+
+      // Show results after a brief delay
+      setTimeout(() => setShowResults(true), 500);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to process files");
       console.error("Processing error:", err);
+      setCurrentStage("upload");
     } finally {
       setIsProcessing(false);
     }
@@ -70,6 +86,7 @@ export default function ReconciliationPage() {
     setNbimFile(null);
     setCustodyFile(null);
     setError(null);
+    setCurrentStage("upload");
   };
 
   const canAnalyze = nbimFile && custodyFile && !isProcessing;
@@ -118,10 +135,19 @@ export default function ReconciliationPage() {
         <div className="mx-auto max-w-4xl">
           <div className="mb-8 rounded-lg border bg-white p-8 shadow-sm dark:bg-gray-950">
             <h2 className="mb-6 font-semibold text-xl">Upload Files</h2>
-            <UploadZone
-              disabled={isProcessing}
-              onFilesSelected={handleFilesSelected}
-            />
+            {/* Progress Indicator */}
+            {isProcessing && (
+              <div className="mb-8">
+                <ProgressIndicator currentStage={currentStage} />
+              </div>
+            )}
+
+            {!isProcessing && (
+              <UploadZone
+                disabled={isProcessing}
+                onFilesSelected={handleFilesSelected}
+              />
+            )}
 
             {/* Action Button */}
             <div className="mt-8 flex justify-center">

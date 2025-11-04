@@ -5,8 +5,8 @@
  * Handles LLM analysis on the server side
  */
 
-import { generateObject } from "ai";
 import { createGatewayProvider } from "@ai-sdk/gateway";
+import { generateObject } from "ai";
 import { z } from "zod";
 import type { ReconciliationBreak } from "./types";
 
@@ -49,7 +49,9 @@ const AnalysisSchema = z.object({
 /**
  * Analyze a single break using LLM (Server Action)
  */
-export async function analyzeBreakWithLLM(breakItem: ReconciliationBreak): Promise<{
+export async function analyzeBreakWithLLM(
+  breakItem: ReconciliationBreak
+): Promise<{
   severity: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
   root_cause: string;
   explanation: string;
@@ -60,7 +62,11 @@ export async function analyzeBreakWithLLM(breakItem: ReconciliationBreak): Promi
     | "data_correction"
     | "create_entry"
     | "escalation";
-  usage: { promptTokens: number; completionTokens: number; totalTokens: number };
+  usage: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
 }> {
   const prompt = `Analyze this dividend reconciliation discrepancy:
 

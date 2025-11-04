@@ -1,20 +1,21 @@
-import { NextResponse } from "next/server";
+import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { generateObject } from "ai";
-import { createGatewayProvider } from "@ai-sdk/gateway";
+import { NextResponse } from "next/server";
 import { z } from "zod";
+import { generateSummary, reconcile } from "@/lib/reconciliation/quick-engine";
 import {
   parseCustodyFile,
   parseNBIMFile,
 } from "@/lib/reconciliation/quick-parser";
-import { generateSummary, reconcile } from "@/lib/reconciliation/quick-engine";
 import type { ReconciliationBreak } from "@/lib/reconciliation/types";
 
-// AI Gateway setup
-const gateway = createGatewayProvider({
-  baseURL: "https://gateway.ai.vercel.com/api",
+// OpenRouter setup - uses OPENROUTER_API_KEY from environment
+const openrouter = createOpenRouter({
+  apiKey: process.env.OPENROUTER_API_KEY || process.env.OPEN_ROUTER_API_KEY,
 });
 
-const model = gateway.languageModel("gpt-4o-mini");
+// Using GPT-4o-mini for cost-effective analysis
+const model = openrouter("openai/gpt-4o-mini");
 
 // Analysis schema
 const AnalysisSchema = z.object({
@@ -47,7 +48,7 @@ const AnalysisSchema = z.object({
 /**
  * POST /api/reconciliation/analyze
  * Accepts two CSV files (nbim and custody), performs reconciliation,
- * and analyzes the worst break with LLM
+ * and analyzes ALL breaks with LLM (following architecture diagram)
  */
 export async function POST(request: Request) {
   try {
@@ -70,44 +71,63 @@ export async function POST(request: Request) {
     // Run reconciliation engine (deterministic - black box in diagram)
     const detectedBreaks = reconcile(nbimRecords, custodyRecords);
 
-    // Find the worst break (largest absolute difference in amount)
-    const worstBreak = detectedBreaks.reduce((worst, current) => {
-      const currentAbsDiff = Math.abs(current.difference);
-      const worstAbsDiff = Math.abs(worst.difference);
-      return currentAbsDiff > worstAbsDiff ? current : worst;
-    }, detectedBreaks[0]);
+    if (detectedBreaks.length === 0) {
+      // No breaks found - perfect reconciliation!
+      const summaryStats = generateSummary(detectedBreaks, nbimRecords);
+      return NextResponse.json({
+        breaks: [],
+        summary: summaryStats,
+      });
+    }
 
-    // Analyze the worst break with LLM (green box in diagram)
-    // This is optional - if LLM fails, we still return the reconciliation results
-    let breaksWithAnalysis = detectedBreaks;
+    // Analyze ALL breaks with LLM (green box in diagram)
+    // In production, you might want to limit this or batch it
+    const breaksWithAnalysis: ReconciliationBreak[] = [];
     let totalCost = 0;
     let totalTokens = 0;
 
-    if (worstBreak) {
+    for (const breakItem of detectedBreaks) {
       try {
-        const analysis = await analyzeBreakWithLLM(worstBreak);
+        const analysis = await analyzeBreakWithLLM(breakItem);
 
-        // Update the worst break with LLM analysis
-        breaksWithAnalysis = detectedBreaks.map((b) =>
-          b === worstBreak ? { ...b, ...analysis } : b
-        );
+        breaksWithAnalysis.push({
+          ...breakItem,
+          ...analysis,
+        });
 
-        // Calculate cost
-        totalCost = calculateCost(analysis.usage);
-        totalTokens = analysis.usage.totalTokens;
+        // Accumulate costs
+        totalCost += calculateCost(analysis.usage);
+        totalTokens += analysis.usage.totalTokens;
       } catch (llmError) {
         console.warn(
-          "LLM analysis failed (continuing without it):",
+          `LLM analysis failed for break ${breakItem.event_key} (continuing):`,
           llmError instanceof Error ? llmError.message : llmError
         );
-        // Continue without LLM analysis - reconciliation results are still valid
+        // Add break without LLM analysis
+        breaksWithAnalysis.push(breakItem);
       }
     }
 
     // Generate summary with cost
-    const summaryStats = generateSummary(detectedBreaks, nbimRecords);
+    const summaryStats = generateSummary(breaksWithAnalysis, nbimRecords);
     summaryStats.total_cost = totalCost;
     summaryStats.total_tokens = totalTokens;
+
+    // Update severity counts based on LLM analysis
+    const breaksBySeverity = {
+      CRITICAL: 0,
+      HIGH: 0,
+      MEDIUM: 0,
+      LOW: 0,
+    };
+
+    for (const breakItem of breaksWithAnalysis) {
+      if (breakItem.severity) {
+        breaksBySeverity[breakItem.severity]++;
+      }
+    }
+
+    summaryStats.breaks_by_severity = breaksBySeverity;
 
     return NextResponse.json({
       breaks: breaksWithAnalysis,
@@ -139,7 +159,11 @@ async function analyzeBreakWithLLM(breakItem: ReconciliationBreak): Promise<{
     | "data_correction"
     | "create_entry"
     | "escalation";
-  usage: { promptTokens: number; completionTokens: number; totalTokens: number };
+  usage: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
 }> {
   const prompt = `Analyze this dividend reconciliation discrepancy:
 
@@ -153,23 +177,39 @@ async function analyzeBreakWithLLM(breakItem: ReconciliationBreak): Promise<{
 - Difference: ${breakItem.difference.toLocaleString()} (${breakItem.difference_pct.toFixed(1)}%)
 
 Provide your analysis following these guidelines:
-1. **Severity**: Assess financial impact (CRITICAL for >$100K or >50%, HIGH for >$10K or >10%, MEDIUM for >$1K, LOW otherwise)
-2. **Root Cause**: Identify the most likely reason (securities lending, settlement timing, tax treaty, data error, FX rounding, split booking, etc.)
+1. **Severity**: Assess financial impact
+   - CRITICAL: Quantity differences >50%, Amount >$100K or >50%, Tax rate differences >10%
+   - HIGH: Quantity differences 10-50%, Amount >$10K or 10-50%, Tax rate differences 5-10%
+   - MEDIUM: Quantity differences 1-10%, Amount >$1K or 1-10%, Tax rate differences 1-5%
+   - LOW: Small differences <1%, likely rounding or minor discrepancies
+
+2. **Root Cause**: Identify the most likely reason
+   - Securities lending (quantity discrepancies)
+   - Settlement timing (date-related)
+   - Tax treaty application (tax rate differences)
+   - Data error (obvious mistakes)
+   - FX rounding (small amount differences <0.1%)
+   - Split booking (multiple accounts)
+
 3. **Explanation**: Explain what likely happened and why
+
 4. **Recommendation**: Provide specific, actionable next steps
-5. **Confidence**: Rate your confidence (0.7-0.95 typical range)
+
+5. **Confidence**: Rate your confidence (0.70-0.95 typical range)
+
 6. **Suggested Remediation**: Choose the programmatic remediation path:
-   - "auto_resolve": For FX rounding differences (<0.1% variance in amounts)
-   - "data_correction": For date mismatches or minor data entry errors
-   - "create_entry": For missing records that should exist
-   - "escalation": For large/complex breaks requiring human review
+   - "auto_resolve": FX rounding differences (<0.1% variance in amounts)
+   - "data_correction": Date mismatches or minor data entry errors
+   - "create_entry": Missing records that should exist
+   - "escalation": Large/complex breaks requiring human review
 
 Context:
 - This is a real-money dividend reconciliation for NBIM (Norwegian sovereign wealth fund)
-- Quantity breaks often indicate securities lending
+- Quantity breaks often indicate securities lending, split bookings, or data errors
+- Large quantity discrepancies (>50%) are always CRITICAL and require immediate investigation
 - Tax rate breaks may involve treaty applications
 - Amount breaks can be secondary effects of quantity/tax differences
-- CRITICAL or HIGH severity should typically route to "escalation"`;
+- CRITICAL severity must always route to "escalation"`;
 
   try {
     const { object, usage } = await generateObject({

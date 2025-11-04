@@ -3,8 +3,8 @@
  * Single LLM call to analyze the worst break
  */
 
-import { generateObject } from "ai";
 import { createGatewayProvider } from "@ai-sdk/gateway";
+import { generateObject } from "ai";
 import { z } from "zod";
 import type { ReconciliationBreak } from "./types";
 
@@ -23,7 +23,9 @@ const AnalysisSchema = z.object({
     .describe("Financial impact severity level"),
   root_cause: z
     .string()
-    .describe("Most likely cause of this discrepancy (e.g., securities lending, tax treaty, settlement timing)"),
+    .describe(
+      "Most likely cause of this discrepancy (e.g., securities lending, tax treaty, settlement timing)"
+    ),
   explanation: z
     .string()
     .describe("2-3 sentence detailed explanation of what happened and why"),
@@ -45,16 +47,22 @@ const AnalysisSchema = z.object({
 /**
  * Analyze a single break using LLM
  */
-export async function analyzeBreak(
-  breakItem: ReconciliationBreak
-): Promise<{
+export async function analyzeBreak(breakItem: ReconciliationBreak): Promise<{
   severity: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
   root_cause: string;
   explanation: string;
   recommendation: string;
   confidence: number;
-  suggested_remediation: "auto_resolve" | "data_correction" | "create_entry" | "escalation";
-  usage: { promptTokens: number; completionTokens: number; totalTokens: number };
+  suggested_remediation:
+    | "auto_resolve"
+    | "data_correction"
+    | "create_entry"
+    | "escalation";
+  usage: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
 }> {
   const prompt = `Analyze this dividend reconciliation discrepancy:
 

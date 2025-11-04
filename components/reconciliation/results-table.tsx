@@ -22,8 +22,28 @@ const breakTypeLabels = {
   MISSING_RECORD: "Missing",
 };
 
+const remediationColors = {
+  auto_resolve:
+    "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800",
+  data_correction:
+    "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800",
+  create_entry:
+    "bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800",
+  escalation:
+    "bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-800",
+};
+
+const remediationLabels = {
+  auto_resolve: "Auto Resolve",
+  data_correction: "Data Fix",
+  create_entry: "Create Entry",
+  escalation: "Escalate",
+};
+
 function formatNumber(num: number | null): string {
-  if (num === null) return "N/A";
+  if (num === null) {
+    return "N/A";
+  }
   return new Intl.NumberFormat("en-US", {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
@@ -31,7 +51,9 @@ function formatNumber(num: number | null): string {
 }
 
 function formatCurrency(num: number | null): string {
-  if (num === null) return "N/A";
+  if (num === null) {
+    return "N/A";
+  }
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
@@ -75,6 +97,9 @@ export function ResultsTable({ breaks }: ResultsTableProps) {
               </th>
               <th className="px-4 py-3 text-center font-semibold text-gray-900 text-sm dark:text-gray-100">
                 Severity
+              </th>
+              <th className="px-4 py-3 text-center font-semibold text-gray-900 text-sm dark:text-gray-100">
+                Remediation
               </th>
             </tr>
           </thead>
@@ -134,6 +159,19 @@ export function ResultsTable({ breaks }: ResultsTableProps) {
                       )}
                     >
                       {breakItem.severity}
+                    </span>
+                  )}
+                </td>
+                <td className="px-4 py-3 text-center">
+                  {breakItem.suggested_remediation && (
+                    <span
+                      className={cn(
+                        "inline-flex rounded border px-2.5 py-0.5 font-medium text-xs",
+                        remediationColors[breakItem.suggested_remediation]
+                      )}
+                      title={breakItem.recommendation}
+                    >
+                      {remediationLabels[breakItem.suggested_remediation]}
                     </span>
                   )}
                 </td>

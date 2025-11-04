@@ -44,9 +44,17 @@ export async function parseNBIMFile(file: File): Promise<NBIMRecord[]> {
           row.NET_AMOUNT_PORTFOLIO || "0"
         ),
         wthtax_rate: Number.parseFloat(row.WTHTAX_RATE || "0"),
-        instrument_name: row.INSTRUMENT_DESCRIPTION || "",
+        instrument_name:
+          row.ORGANISATION_NAME || row.INSTRUMENT_DESCRIPTION || "",
         ex_date: row.EXDATE || "",
         account_number: row.BANK_ACCOUNT || "",
+        gross_amount_quotation: Number.parseFloat(
+          row.GROSS_AMOUNT_QUOTATION || "0"
+        ),
+        net_amount_quotation: Number.parseFloat(
+          row.NET_AMOUNT_QUOTATION || "0"
+        ),
+        quotation_currency: row.QUOTATION_CURRENCY || "",
       });
     } catch (error) {
       console.error(`Error parsing NBIM row ${i}:`, error);
@@ -84,6 +92,10 @@ export async function parseCustodyFile(file: File): Promise<CustodyRecord[]> {
 
     // Map to CustodyRecord type
     try {
+      // Extract bank account from BANK_ACCOUNTS field (can have multiple, comma-separated)
+      const bankAccounts = row.BANK_ACCOUNTS || row.CUSTODY || "";
+      const primaryAccount = bankAccounts.split(",")[0]?.trim() || "";
+
       records.push({
         coac_event_key: row.COAC_EVENT_KEY || "",
         isin: row.ISIN || "",
@@ -91,11 +103,13 @@ export async function parseCustodyFile(file: File): Promise<CustodyRecord[]> {
         holding_quantity: Number.parseFloat(row.HOLDING_QUANTITY || "0"),
         loan_quantity: Number.parseFloat(row.LOAN_QUANTITY || "0"),
         gross_amount: Number.parseFloat(row.GROSS_AMOUNT || "0"),
+        net_amount_qc: Number.parseFloat(row.NET_AMOUNT_QC || "0"),
         net_amount_sc: Number.parseFloat(row.NET_AMOUNT_SC || "0"),
         tax_rate: Number.parseFloat(row.TAX_RATE || "0"),
         custodian: row.CUSTODIAN || "",
-        instrument_name: row.ISIN || "", // Will lookup from NBIM
-        ex_date: row.EX_DATE || "",
+        instrument_name: row.ISIN || "", // Will be enriched later
+        ex_date: row.EX_DATE || row.EVENT_EX_DATE || "",
+        bank_account: primaryAccount,
       });
     } catch (error) {
       console.error(`Error parsing Custody row ${i}:`, error);
